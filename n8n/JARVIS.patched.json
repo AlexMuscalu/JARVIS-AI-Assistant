@@ -1,0 +1,593 @@
+{
+  "name": "JARVIS",
+  "nodes": [
+    {
+      "parameters": {
+        "name": "emailAgent",
+        "description": "Call this tool for any email actions.",
+        "workflowId": {
+          "__rl": true,
+          "value": "7L00fcqqoqPG7nIj",
+          "mode": "id"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [
+        700,
+        480
+      ],
+      "id": "d7d1e3e7-1171-4e0a-b02b-c5d405ebd09f",
+      "name": "Email Agent"
+    },
+    {
+      "parameters": {
+        "name": "contactAgent",
+        "description": "Call this tool to get, update, or add contacts.",
+        "workflowId": {
+          "__rl": true,
+          "value": "8yxf7wIezTCZMjeY",
+          "mode": "id"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [
+        980,
+        480
+      ],
+      "id": "9298798f-46e6-46b8-8c3e-6c6e02a2eea1",
+      "name": "Contact Agent"
+    },
+    {
+      "parameters": {
+        "name": "contentCreator",
+        "description": "Call this tool to create blog posts.",
+        "workflowId": {
+          "__rl": true,
+          "value": "fgb3lhoyzGg1vmLa",
+          "mode": "id"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        480
+      ],
+      "id": "3b39ea2a-7c02-481e-9a52-c7a7c6a7afe2",
+      "name": "Content Creator Agent"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool to search the internet",
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n    \"api_key\": \"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\",\n    \"query\": \"{searchTerm}\",\n    \"search_depth\": \"basic\",\n    \"include_answer\": true,\n    \"topic\": \"news\",\n    \"include_raw_content\": true,\n    \"max_results\": 3\n}",
+        "placeholderDefinitions": {
+          "values": [
+            {
+              "name": "searchTerm",
+              "description": "What the user has requested to search the internet for",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        1160,
+        160
+      ],
+      "id": "fefda7ea-e118-4dbf-9bc4-0f88b1e9c63e",
+      "name": "Tavily"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        160
+      ],
+      "id": "07aea172-3154-4d5e-af17-ae3a0e1025ff",
+      "name": "Calculator"
+    },
+    {
+      "parameters": {
+        "name": "calendarAgent",
+        "description": "Call this tool for any calendar action.",
+        "workflowId": {
+          "__rl": true,
+          "value": "GNmmQ5T7fz4pG0Da",
+          "mode": "id"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [
+        840,
+        480
+      ],
+      "id": "9581a09a-be74-4db1-acae-3ea90c1c2063",
+      "name": "Calendar Agent"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "n8n",
+        "responseMode": "responseNode",
+        "options": {},
+        "authentication": "headerAuth"
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        60,
+        -60
+      ],
+      "id": "82ee1170-ea93-40bc-a3ed-0a0588a78c95",
+      "name": "Webhook",
+      "webhookId": "dced53d2-e10e-4357-9d22-4f8db19efa7c",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "jrHyUDCdzfwKDKVB",
+          "name": "JARVIS-Webhook-Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1460,
+        -60
+      ],
+      "id": "7802b29b-6389-40ed-baaf-524f3aec3cb5",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.query }}",
+        "options": {
+          "systemMessage": "=# Overview\nYou are JARVIS, the ultimate personal assistant. Your job is to send the user's query to the correct tool. You should never be writing emails, or creating even summaries, you just need to call the correct tool.\n\n## Tools\n- emailAgent: Use this tool to take action in email\n- calendarAgent: Use this tool to take action in calendar\n- contactAgent: Use this tool to get, update, or add contacts\n- contentCreator: Use this tool to create blog posts\n- Tavily: Use this tool to search the web\n- Calculator: Use this tool for any mathematical calculation\n\n## Rules\n- Some actions require you to look up contact information first. For the following actions, you must get contact information and send that to the agent who needs it:\n  - sending emails\n  - drafting emails\n  - creating calendar event with attendee\n\n## Examples\n1) \n- Input: send an email to nate herkelman asking him what time he wants to leave\n  - Action: Use contactAgent to get nate herkelman's email\n  - Action: Use emailAgent to send the email. You will pass the tool a query like \"send nate herkelman an email to ask what time he wants to leave. here is his email: [email address]\n- Output: The email has been sent to Nate Herkelman. Anything else I can help you with?\n\n## Final Reminders\nHere is the current date/time: {{ $now }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        860,
+        -60
+      ],
+      "id": "f0ea154b-48c7-438b-b8ea-35d94ba3ec54",
+      "name": "Jarvis",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        560,
+        160
+      ],
+      "id": "70e47629-a51a-4c1e-905a-2a4f47fdd210",
+      "name": "4o",
+      "credentials": {
+        "openAiApi": {
+          "id": "lAvVE77xDQJjW5PA",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.sessionId ?? $('Webhook').item.json.headers.host }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        700,
+        160
+      ],
+      "id": "10e6db58-6642-45dd-8777-4664fdfb01a2",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body ?? {};\nconst query = body.query;\n\nif (!query || typeof query !== 'string' || !query.trim()) {\n  return [{\n    json: {\n      error: true,\n      message: 'body.query is required and must be a non-empty string',\n      statusCode: 400\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...$input.first().json,\n    query: query.trim()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        -60
+      ],
+      "id": "b1c2d3e4-f5a6-7890-abcd-ef1234567890",
+      "name": "Validate Input"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1d2e3f4-a5b6-7890-abcd-ef1234567891",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        460,
+        -60
+      ],
+      "id": "d1e2f3a4-b5c6-7890-abcd-ef1234567892",
+      "name": "Check Validation"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={\"error\":true,\"message\":\"{{ $json.message }}\"}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        120
+      ],
+      "id": "e1f2a3b4-c5d6-7890-abcd-ef1234567893",
+      "name": "Respond with Error"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f1a2b3c4-d5e6-7890-abcd-ef1234567894",
+              "name": "reply",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1260,
+        -60
+      ],
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567895",
+      "name": "Normalize Response"
+    },
+    {
+      "parameters": {
+        "content": "# JARVIS Main Agent\n\n**Patched:** session isolation, input validation, response normalization, child workflow IDs wired.",
+        "height": 260,
+        "width": 440,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        800,
+        -200
+      ],
+      "typeVersion": 1,
+      "id": "749e4562-c536-48fe-82d0-ddf3a5905ae7",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "# JARVIS Personal Assistant",
+        "height": 100,
+        "width": 500,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        480,
+        -360
+      ],
+      "typeVersion": 1,
+      "id": "1fbf5505-3fed-403c-a3ba-5c53b5620a1c",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "# Child Agents\n\nAll 4 workflow IDs mapped.",
+        "height": 260,
+        "width": 720,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        520,
+        380
+      ],
+      "typeVersion": 1,
+      "id": "05315716-5f82-4297-91ac-02f89a445487",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "# Input Guard\n\nValidates body.query before invoking Jarvis.\nEmpty/missing \u2192 400 error response.",
+        "height": 180,
+        "width": 300,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        160,
+        -260
+      ],
+      "typeVersion": 1,
+      "id": "2e0dcfde-c5c1-40c2-b795-f5dfb7c1f7b4",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "aabbccdd-1234-5678-abcd-ef0011223344",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1060,
+        -60
+      ],
+      "id": "ee112233-4455-6677-8899-aabbccddeeff",
+      "name": "Check Agent Error"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "{\"error\":true,\"message\":\"JARVIS encountered an error. Please try again.\"}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        920,
+        160
+      ],
+      "id": "ff223344-5566-7788-99aa-bbccddeeff00",
+      "name": "Respond with Agent Error"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Check Validation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Validation": {
+      "main": [
+        [
+          {
+            "node": "Respond with Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Jarvis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jarvis": {
+      "main": [
+        [
+          {
+            "node": "Check Agent Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Agent": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contact Agent": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Content Creator Agent": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tavily": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculator": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendar Agent": {
+      "ai_tool": [
+        [
+          {
+            "node": "Jarvis",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4o": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Jarvis",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Jarvis",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Agent Error": {
+      "main": [
+        [
+          {
+            "node": "Respond with Agent Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Normalize Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "id": "rpiNO5gaDv2ruabb",
+  "active": true,
+  "meta": {
+    "instanceId": "95e5a8c2e51c83e33b232ea792bbe3f063c094c33d9806a5565cb31759e1ad39"
+  },
+  "tags": []
+}
