@@ -1,56 +1,62 @@
 #!/bin/bash
-# JARVIS local startup script
-# Run this whenever you want to demo JARVIS on your machine
+# JARVIS — one-click startup script
+# Starts n8n + ngrok tunnel. Run this before opening Lovable.
 
-set -e
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-FRONTEND_DIR="$PROJECT_DIR/frontend"
+NGROK_DOMAIN="concurringly-overremiss-clementina.ngrok-free.dev"
+WEBHOOK_URL="https://${NGROK_DOMAIN}/webhook/n8n"
 N8N_DOCKER_DIR="$HOME/N8N/n8n-Docker"
+NGROK_BIN="$HOME/bin/ngrok"
 
 echo ""
-echo "  ╔══════════════════════════════════╗"
-echo "  ║       J.A.R.V.I.S  ONLINE       ║"
-echo "  ╚══════════════════════════════════╝"
+echo "  ╔══════════════════════════════════════════╗"
+echo "  ║          J.A.R.V.I.S  STARTING          ║"
+echo "  ╚══════════════════════════════════════════╝"
 echo ""
 
-# 1 — Make sure Docker is running
+# ── 1. Docker ────────────────────────────────────────────────────────────────
 if ! docker info &>/dev/null; then
-  echo "  [!] Docker is not running. Starting Docker Desktop..."
+  echo "  [~] Starting Docker Desktop..."
   open -a Docker
-  echo "  [~] Waiting for Docker to start..."
   until docker info &>/dev/null; do sleep 2; done
-  echo "  [✓] Docker is ready"
 fi
+echo "  [✓] Docker ready"
 
-# 2 — Start n8n if not already running
-if ! curl -s http://localhost:5678/healthz | grep -q '"status":"ok"'; then
+# ── 2. n8n ───────────────────────────────────────────────────────────────────
+if ! curl -s http://localhost:5678/healthz 2>/dev/null | grep -q '"status":"ok"'; then
   echo "  [~] Starting n8n..."
   cd "$N8N_DOCKER_DIR" && docker compose up -d
-  echo "  [~] Waiting for n8n to come online..."
-  until curl -s http://localhost:5678/healthz | grep -q '"status":"ok"'; do sleep 2; done
-  echo "  [✓] n8n is online at http://localhost:5678"
+  until curl -s http://localhost:5678/healthz 2>/dev/null | grep -q '"status":"ok"'; do sleep 2; done
+fi
+echo "  [✓] n8n online"
+
+# ── 3. ngrok (static domain) ─────────────────────────────────────────────────
+if ! curl -s http://localhost:4040/api/tunnels 2>/dev/null | grep -q "$NGROK_DOMAIN"; then
+  echo "  [~] Starting ngrok tunnel..."
+  pkill -f "ngrok http" 2>/dev/null; sleep 1
+  "$NGROK_BIN" http 5678 \
+    --domain="$NGROK_DOMAIN" \
+    --log=stdout --log-format=json \
+    > /tmp/ngrok-jarvis.log 2>&1 &
+  sleep 4
+fi
+echo "  [✓] Tunnel live → $WEBHOOK_URL"
+
+# ── 4. Quick health check through tunnel ─────────────────────────────────────
+HEALTH=$(curl -s "${WEBHOOK_URL/webhook\/n8n/healthz}" \
+  -H "ngrok-skip-browser-warning: true" --max-time 5 2>/dev/null)
+if echo "$HEALTH" | grep -q '"status":"ok"'; then
+  echo "  [✓] n8n reachable via public URL"
 else
-  echo "  [✓] n8n already running"
+  echo "  [!] Tunnel health check failed — check /tmp/ngrok-jarvis.log"
 fi
 
-# 3 — Install frontend deps if needed
-if [ ! -d "$FRONTEND_DIR/node_modules" ]; then
-  echo "  [~] Installing frontend dependencies..."
-  cd "$FRONTEND_DIR" && npm install --silent
-  echo "  [✓] Dependencies installed"
-fi
-
-# 4 — Start the frontend
-echo "  [~] Starting JARVIS interface..."
-echo "  [✓] Opening http://localhost:5173"
 echo ""
-echo "  Webhook URL  : http://localhost:5678/webhook/n8n"
-echo "  Token        : 35dfeab43a62995965c1a2f3a3ebaf2c85f130593992ba47"
+echo "  ┌─────────────────────────────────────────────────────┐"
+echo "  │  JARVIS is ready. Open Lovable and start talking.   │"
+echo "  │                                                     │"
+echo "  │  Webhook : $WEBHOOK_URL"
+echo "  │  Token   : 35dfeab43a62995965c1a2f3a3ebaf2c85f130593992ba47  │"
+echo "  │                                                     │"
+echo "  │  To stop: Ctrl+C or run  pkill -f 'ngrok http'     │"
+echo "  └─────────────────────────────────────────────────────┘"
 echo ""
-
-# Open browser after a short delay
-(sleep 3 && open "http://localhost:5173") &
-
-cd "$FRONTEND_DIR" && npm run dev
