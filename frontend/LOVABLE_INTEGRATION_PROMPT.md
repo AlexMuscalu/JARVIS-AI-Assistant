@@ -9,8 +9,10 @@ I need to wire the "Talk to Jarvis" button and any voice/text input to a real n8
 ## 1 — Create src/lib/jarvisApi.ts
 
 ```typescript
-const WEBHOOK_URL = 'https://concurringly-overremiss-clementina.ngrok-free.dev/webhook/n8n';
-const TOKEN = '35dfeab43a62995965c1a2f3a3ebaf2c85f130593992ba47';
+// Webhook URL and token are set in Lovable environment variables:
+// VITE_WEBHOOK_URL and VITE_JARVIS_TOKEN
+const WEBHOOK_URL = import.meta.env.VITE_WEBHOOK_URL as string;
+const TOKEN = import.meta.env.VITE_JARVIS_TOKEN as string;
 
 function getSessionId(): string {
   let id = localStorage.getItem('jarvis_session_id');
@@ -58,3 +60,9 @@ Find the component or hook that handles what happens when the user finishes spea
 - The existing voice system or TTS implementation
 - The orb component or its states
 - Any existing API calls or integrations already working
+
+## 4 — Environment variables
+
+Add to Lovable project settings (Settings → Environment Variables):
+- `VITE_WEBHOOK_URL` = your ngrok webhook URL
+- `VITE_JARVIS_TOKEN` = your auth token

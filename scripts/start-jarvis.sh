@@ -2,7 +2,13 @@
 # JARVIS — one-click startup script
 # Starts n8n + ngrok tunnel. Run this before opening Lovable.
 
-NGROK_DOMAIN="concurringly-overremiss-clementina.ngrok-free.dev"
+# Load secrets from .env (never hardcoded here)
+ENV_FILE="$(dirname "$0")/../.env"
+if [ -f "$ENV_FILE" ]; then
+  export $(grep -v '^#' "$ENV_FILE" | xargs)
+fi
+
+NGROK_DOMAIN="${NGROK_DOMAIN:-concurringly-overremiss-clementina.ngrok-free.dev}"
 WEBHOOK_URL="https://${NGROK_DOMAIN}/webhook/n8n"
 N8N_DOCKER_DIR="$HOME/N8N/n8n-Docker"
 NGROK_BIN="$HOME/bin/ngrok"
@@ -55,8 +61,6 @@ echo "  ┌───────────────────────
 echo "  │  JARVIS is ready. Open Lovable and start talking.   │"
 echo "  │                                                     │"
 echo "  │  Webhook : $WEBHOOK_URL"
-echo "  │  Token   : 35dfeab43a62995965c1a2f3a3ebaf2c85f130593992ba47  │"
-echo "  │                                                     │"
-echo "  │  To stop: Ctrl+C or run  pkill -f 'ngrok http'     │"
+echo "  │  To stop : pkill -f 'ngrok http'                   │"
 echo "  └─────────────────────────────────────────────────────┘"
 echo ""
